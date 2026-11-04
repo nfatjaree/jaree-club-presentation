@@ -48,7 +48,6 @@
     document.documentElement.classList.toggle('motion-paused', paused);
     byId('motion-toggle').setAttribute('aria-pressed', String(paused));
     byId('motion-toggle').setAttribute('aria-label', paused ? copy.ui.play : copy.ui.pause);
-    byId('motion-toggle').querySelector('use').setAttribute('href', paused ? '#i-play' : '#i-pause');
   }
   function updateProgress() {
     const marker = Math.min(innerHeight * .32, 300);
@@ -129,7 +128,6 @@
     byId('offer-logo').alt = method.brand;
     byId('offer-brand').textContent = `${method.brand} / ${method.category}`;
     ['title','body','audience','method'].forEach(key => { byId(`offer-${key}`).textContent = method[key]; });
-    byId('offer-limit').textContent = method.unit;
     byId('method-heading').textContent = method.heading;
     byId('method-note').textContent = method.note;
     byId('method-steps').replaceChildren(...method.steps.map((text,i) => {
@@ -163,7 +161,6 @@
     const t = copy.trust;
     byId('verification-logo').src = `assets/${method.brand.toLowerCase()}.svg`;
     byId('verification-logo').alt = method.brand;
-    byId('verification-place').textContent = method.place;
     byId('verification-token').textContent = `${method.brand} · ${method.token}`;
     byId('verification-title').textContent = [method.title,t.eligible,t.confirmed,t.repeated][step];
     byId('verification-body').textContent = [t.initial,method.verification,t.result,t.repeatNote][step];
@@ -173,8 +170,7 @@
     byId('verification-detail').replaceChildren();
     if (confirmed) {
       const remaining = document.createElement('span'); remaining.textContent = `${method.remainingLabel}: ${method.remaining}`;
-      const reference = document.createElement('span'); const code = document.createElement('bdi');
-      code.textContent = 'DEMO-025'; reference.append(`${t.reference} `, code);
+      const reference = document.createElement('bdi'); reference.textContent = 'DEMO-025';
       byId('verification-detail').append(remaining,reference);
     }
     byId('verify-button').hidden = confirmed;
@@ -188,8 +184,8 @@
     byId('bar-5').style.setProperty('--bar', confirmed ? '100%' : '87.5%');
     document.querySelector('.bar-chart').setAttribute('aria-label',`${copy.insights.chart}: 2, 3, 4, 3, 5, ${confirmed ? 8 : 7}`);
     byId('new-activity').hidden = !confirmed;
-    const recorded = document.createElement('bdi'); recorded.textContent = `${method.brand} · DEMO-025`;
-    byId('new-activity-detail').replaceChildren(recorded, ` · ${copy.insights.newRow}`);
+    byId('new-activity-detail').textContent = `${method.brand} · DEMO-025`;
+    byId('new-activity-title').textContent = copy.insights.newRow;
   }
   byId('verify-button').addEventListener('click', () => {
     step = Math.min(step + 1, 2); renderVerification(); saveState();
