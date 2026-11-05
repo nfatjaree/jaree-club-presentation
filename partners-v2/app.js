@@ -238,16 +238,18 @@
     scenarioTabs.forEach(tab => { const selected = tab.dataset.scenario === scenario.id; tab.setAttribute('aria-selected',String(selected)); tab.tabIndex = selected ? 0 : -1; });
     byId('scenario-panel').setAttribute('aria-labelledby',`scenario-tab-${scenario.id}`);
     byId('scenario-body').textContent = scenario.body;
-    byId('scenario-flow').replaceChildren(...scenario.steps.map((text,i) => {
-      const li = document.createElement('li'); const num = document.createElement('span'); const label = document.createElement('b');
-      num.textContent = String(i+1).padStart(2,'0'); label.textContent = text; li.append(num,label); return li;
-    }));
+    byId('scenario-direction').textContent = scenario.direction;
+    byId('scenario-request').textContent = scenario.request;
+    byId('scenario-response').textContent = scenario.response;
+    byId('scenario-outcome').textContent = scenario.outcome;
+    byId('scenario-detail').textContent = scenario.detail;
+    document.querySelector('.api-base').hidden = scenario.id === 'issue';
   }
   function selectScenario(index) {
     scenario = copy.scenarios.items[index]; renderScenario(); saveState();
     if (!paused) {
       byId('scenario-body').animate([{opacity:.5},{opacity:1}],{duration:220});
-      [...byId('scenario-flow').children].forEach((el,i) => el.animate([{opacity:.35,transform:'translateY(8px)'},{opacity:1,transform:'none'}],{duration:320,delay:i*65,easing:'ease-out'}));
+      [...document.querySelectorAll('.api-exchange > div')].forEach((el,i) => el.animate([{opacity:.35,transform:'translateY(8px)'},{opacity:1,transform:'none'}],{duration:320,delay:i*65,easing:'ease-out'}));
     }
   }
   scenarioTabs.forEach((tab,i) => {
