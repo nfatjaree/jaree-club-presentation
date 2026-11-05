@@ -9,7 +9,10 @@
   let method = methods.find(item => item.id === params.get('example')) || methods[0];
   let step = [0, 1, 2, 3].includes(Number(params.get('step'))) ? Number(params.get('step')) : 0;
   let stage = [0, 1, 2, 3].includes(Number(params.get('stage'))) ? Number(params.get('stage')) : 0;
-  let paused = reduced.matches || params.get('motion') === 'off';
+  let userPaused = params.get('motion') === 'off';
+  let paused = reduced.matches || userPaused;
+  let scenario = copy.scenarios.items.find(item => item.id === params.get('scenario')) || copy.scenarios.items[0];
+  let scrollAnimation = null;
   let current = 0;
   let framePending = false;
   let navigationTarget = null;
@@ -29,7 +32,8 @@
     if (method.id !== 'digital') next.set('example', method.id);
     if (step) next.set('step', String(step));
     if (stage) next.set('stage', String(stage));
-    if (paused && !reduced.matches) next.set('motion', 'off');
+    if (userPaused) next.set('motion', 'off');
+    if (scenario.id !== 'verify') next.set('scenario', scenario.id);
     return next.toString();
   }
   function languageLink() {
@@ -49,6 +53,10 @@
     byId('motion-toggle').setAttribute('aria-pressed', String(paused));
     byId('motion-toggle').setAttribute('aria-label', paused ? copy.ui.play : copy.ui.pause);
     byId('motion-toggle').querySelector('use').setAttribute('href', paused ? '#i-play' : '#i-pause');
+    byId('motion-label').textContent = reduced.matches ? copy.ui.reducedMotion : (paused ? copy.ui.play : copy.ui.pause);
+    byId('motion-toggle').disabled = reduced.matches;
+    if (reduced.matches) byId('motion-toggle').setAttribute('aria-label',copy.ui.reducedMotion);
+    if (paused) { document.getAnimations().forEach(animation => animation.cancel()); cancelScroll(); }
   }
   function updateProgress() {
     const marker = Math.min(innerHeight * .32, 300);
@@ -69,7 +77,7 @@
     byId('progress-fill').style.width = `${(index + 1) / chapters.length * 100}%`;
     byId('previous').disabled = index === 0;
     byId('next-chapter').disabled = index === chapters.length - 1;
-    menu.querySelectorAll('a').forEach((link,i) => {
+    menu.querySelectorAll('nav a').forEach((link,i) => {
       if (i === index) link.setAttribute('aria-current','location');
       else link.removeAttribute('aria-current');
     });
@@ -81,15 +89,42 @@
     if (push && location.hash !== `#${target.id}`) history.pushState(null, '', `${location.pathname}${location.search}#${target.id}`);
     const index = chapters.indexOf(target);
     if (index >= 0) { navigationTarget = index; setCurrent(index); }
-    target.scrollIntoView({behavior: paused ? 'instant' : 'smooth', block:'start'});
+    scrollToChapter(target);
     const heading = target.querySelector('h1,h2') || target;
     heading.setAttribute('tabindex','-1');
     heading.focus({preventScroll:true});
     menu.open = false;
   }
+  function cancelScroll() {
+    if (scrollAnimation !== null) cancelAnimationFrame(scrollAnimation);
+    scrollAnimation = null;
+  }
+  function scrollToChapter(target) {
+    cancelScroll();
+    const start = scrollY;
+    const offset = parseFloat(getComputedStyle(target).scrollMarginTop) || 0;
+    const end = Math.max(0, Math.min(start + target.getBoundingClientRect().top - offset, document.documentElement.scrollHeight - innerHeight));
+    if (paused) { window.scrollTo({top:end,behavior:'instant'}); return; }
+    const begun = performance.now();
+    function move(now) {
+      const progress = Math.min((now - begun) / 520, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      window.scrollTo({top:start + (end - start) * eased,behavior:'instant'});
+      if (progress < 1) scrollAnimation = requestAnimationFrame(move);
+      else {
+        scrollAnimation = null; navigationTarget = null; updateProgress();
+        target.querySelectorAll(':scope > .reveal').forEach((el,i) => el.animate([{opacity:.65,transform:'translateY(9px)'},{opacity:1,transform:'none'}],{duration:320,delay:i*35,easing:'ease-out'}));
+      }
+    }
+    scrollAnimation = requestAnimationFrame(move);
+  }
   document.querySelectorAll('a[href^="#"]').forEach(link => link.addEventListener('click', event => {
     const target = document.getElementById(link.getAttribute('href').slice(1));
-    if (target) { event.preventDefault(); navigate(target); }
+    if (target) {
+      event.preventDefault();
+      if (link.dataset.showcase) { method = methods.find(item => item.id === link.dataset.showcase) || methods[0]; step = 0; renderMethod(); renderVerification(); saveState(); }
+      navigate(target);
+    }
   }));
   byId('previous').addEventListener('click', () => navigate(chapters[current - 1]));
   byId('next-chapter').addEventListener('click', () => navigate(chapters[current + 1]));
@@ -97,17 +132,17 @@
     if (!framePending) { framePending = true; requestAnimationFrame(updateProgress); }
   }, {passive:true});
   addEventListener('resize', updateProgress);
-  addEventListener('wheel', () => { navigationTarget = null; }, {passive:true});
-  addEventListener('touchstart', () => { navigationTarget = null; }, {passive:true});
+  addEventListener('wheel', () => { cancelScroll(); navigationTarget = null; }, {passive:true});
+  addEventListener('touchstart', () => { cancelScroll(); navigationTarget = null; }, {passive:true});
   document.addEventListener('keydown', event => { if (event.key === 'Escape') menu.open = false; });
   document.addEventListener('click', event => { if (!menu.contains(event.target)) menu.open = false; });
-  byId('motion-toggle').addEventListener('click', () => { setMotion(!paused); saveState(); });
-  reduced.addEventListener('change', event => { setMotion(event.matches); saveState(); });
+  byId('motion-toggle').addEventListener('click', () => { userPaused = !userPaused; setMotion(reduced.matches || userPaused); saveState(); });
+  reduced.addEventListener('change', event => { setMotion(event.matches || userPaused); saveState(); });
   byId('fullscreen').addEventListener('click', async () => {
     try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); }
     catch { byId('fullscreen').hidden = true; }
   });
-  document.addEventListener('fullscreenchange', () => byId('fullscreen').setAttribute('aria-label',document.fullscreenElement ? copy.ui.exitFullscreen : copy.ui.fullscreen));
+  document.addEventListener('fullscreenchange', () => { const label = document.fullscreenElement ? copy.ui.exitFullscreen : copy.ui.fullscreen; byId('fullscreen').setAttribute('aria-label',label); byId('fullscreen-label').textContent = label; });
 
   function renderStage() {
     const data = copy.join.stages[stage];
@@ -118,7 +153,7 @@
       const span = document.createElement('span'); span.textContent = text; li.append(span); return li;
     }));
   }
-  stages.forEach(button => button.addEventListener('click', () => { stage = Number(button.dataset.stage); renderStage(); saveState(); }));
+  stages.forEach(button => button.addEventListener('click', () => { stage = Number(button.dataset.stage); renderStage(); saveState(); if (!paused) byId('stage-panel').animate([{opacity:.65,transform:'translateY(5px)'},{opacity:1,transform:'none'}],{duration:250,easing:'ease-out'}); }));
   function renderMethod() {
     tabs.forEach(tab => {
       const selected = tab.dataset.method === method.id;
@@ -197,6 +232,38 @@
   });
   byId('repeat-button').addEventListener('click', () => { step = 3; renderVerification(); saveState(); byId('activity-link').focus({preventScroll:true}); });
   byId('verify-reset').addEventListener('click', () => { step = 0; renderVerification(); saveState(); byId('verify-button').focus({preventScroll:true}); });
+
+  const scenarioTabs = [...document.querySelectorAll('[data-scenario]')];
+  function renderScenario() {
+    scenarioTabs.forEach(tab => { const selected = tab.dataset.scenario === scenario.id; tab.setAttribute('aria-selected',String(selected)); tab.tabIndex = selected ? 0 : -1; });
+    byId('scenario-panel').setAttribute('aria-labelledby',`scenario-tab-${scenario.id}`);
+    byId('scenario-body').textContent = scenario.body;
+    byId('scenario-flow').replaceChildren(...scenario.steps.map((text,i) => {
+      const li = document.createElement('li'); const num = document.createElement('span'); const label = document.createElement('b');
+      num.textContent = String(i+1).padStart(2,'0'); label.textContent = text; li.append(num,label); return li;
+    }));
+  }
+  function selectScenario(index) {
+    scenario = copy.scenarios.items[index]; renderScenario(); saveState();
+    if (!paused) {
+      byId('scenario-body').animate([{opacity:.5},{opacity:1}],{duration:220});
+      [...byId('scenario-flow').children].forEach((el,i) => el.animate([{opacity:.35,transform:'translateY(8px)'},{opacity:1,transform:'none'}],{duration:320,delay:i*65,easing:'ease-out'}));
+    }
+  }
+  scenarioTabs.forEach((tab,i) => {
+    tab.addEventListener('click', () => selectScenario(i));
+    tab.addEventListener('keydown', event => {
+      const forward = copy.dir === 'rtl' ? 'ArrowLeft' : 'ArrowRight';
+      const back = copy.dir === 'rtl' ? 'ArrowRight' : 'ArrowLeft';
+      let index;
+      if (event.key === forward || event.key === 'ArrowDown') index = (i+1)%scenarioTabs.length;
+      if (event.key === back || event.key === 'ArrowUp') index = (i+scenarioTabs.length-1)%scenarioTabs.length;
+      if (event.key === 'Home') index = 0;
+      if (event.key === 'End') index = scenarioTabs.length-1;
+      if (index !== undefined) { event.preventDefault(); selectScenario(index); scenarioTabs[index].focus(); }
+    });
+  });
+
   function restorePosition() {
     const target = document.getElementById(location.hash.slice(1));
     if (target && chapters.includes(target)) {
@@ -206,14 +273,17 @@
     }
   }
   addEventListener('popstate', () => {
+    cancelScroll(); navigationTarget = null;
     const state = new URLSearchParams(location.search);
     method = methods.find(item => item.id === state.get('example')) || methods[0];
     step = [0,1,2,3].includes(Number(state.get('step'))) ? Number(state.get('step')) : 0;
     stage = [0,1,2,3].includes(Number(state.get('stage'))) ? Number(state.get('stage')) : 0;
-    setMotion(reduced.matches || state.get('motion') === 'off');
+    userPaused = state.get('motion') === 'off';
+    scenario = copy.scenarios.items.find(item => item.id === state.get('scenario')) || copy.scenarios.items[0];
+    setMotion(reduced.matches || userPaused); renderScenario();
     renderStage(); renderMethod(); renderVerification(); restorePosition();
   });
-  setMotion(paused); renderStage(); renderMethod(); renderVerification(); updateProgress();
+  setMotion(paused); renderScenario(); renderStage(); renderMethod(); renderVerification(); updateProgress();
   const openingHash = location.hash;
   if (openingHash) document.fonts.ready.then(() => { if (location.hash === openingHash) restorePosition(); });
   if ('IntersectionObserver' in window) {
@@ -222,5 +292,7 @@
       if (entry.isIntersecting) { entry.target.classList.add('visible'); observer.unobserve(entry.target); }
     }), {threshold:.04});
     document.querySelectorAll('.reveal').forEach(element => observer.observe(element));
+    const visibility = new IntersectionObserver(entries => entries.forEach(entry => entry.target.classList.toggle('in-view',entry.isIntersecting)), {threshold:0});
+    chapters.forEach(element => visibility.observe(element));
   }
 })();
