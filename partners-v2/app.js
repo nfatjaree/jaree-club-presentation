@@ -239,6 +239,13 @@
     byId('scenario-panel').setAttribute('aria-labelledby',`scenario-tab-${scenario.id}`);
     byId('scenario-body').textContent = scenario.body;
     byId('scenario-direction').textContent = scenario.direction;
+    byId('scenario-summary').textContent = scenario.summary;
+    byId('scenario-flow').replaceChildren(...scenario.steps.map((text,i) => {
+      const item = document.createElement('li');
+      const number = document.createElement('span'); number.textContent = String(i + 1).padStart(2, '0');
+      const label = document.createElement('b'); label.textContent = text;
+      item.append(number, label); return item;
+    }));
     byId('scenario-request').textContent = scenario.request;
     byId('scenario-response').textContent = scenario.response;
     byId('scenario-outcome').textContent = scenario.outcome;
@@ -249,7 +256,7 @@
     scenario = copy.scenarios.items[index]; renderScenario(); saveState();
     if (!paused) {
       byId('scenario-body').animate([{opacity:.5},{opacity:1}],{duration:220});
-      [...document.querySelectorAll('.api-exchange > div')].forEach((el,i) => el.animate([{opacity:.35,transform:'translateY(8px)'},{opacity:1,transform:'none'}],{duration:320,delay:i*65,easing:'ease-out'}));
+      [...document.querySelectorAll('#scenario-flow li')].forEach((el,i) => el.animate([{opacity:.35,transform:'translateY(8px)'},{opacity:1,transform:'none'}],{duration:320,delay:i*65,easing:'ease-out'}));
     }
   }
   scenarioTabs.forEach((tab,i) => {
