@@ -144,16 +144,175 @@
   });
   document.addEventListener('fullscreenchange', () => { const label = document.fullscreenElement ? copy.ui.exitFullscreen : copy.ui.fullscreen; byId('fullscreen').setAttribute('aria-label',label); byId('fullscreen-label').textContent = label; });
 
+  const stagePanels = stages.map(tab => byId(tab.getAttribute('aria-controls')));
+
   function renderStage() {
-    const data = copy.join.stages[stage];
-    stages.forEach((button,i) => button.setAttribute('aria-pressed',String(i === stage)));
-    ['status','title','body'].forEach(key => { byId(`stage-${key}`).textContent = data[key]; });
-    byId('stage-rows').replaceChildren(...data.rows.map(text => {
-      const li = document.createElement('li'); li.innerHTML = symbol('check');
-      const span = document.createElement('span'); span.textContent = text; li.append(span); return li;
-    }));
+    stages.forEach((tab, index) => {
+      const selected = index === stage;
+      tab.setAttribute('aria-selected', String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      stagePanels[index].hidden = !selected;
+    });
   }
-  stages.forEach(button => button.addEventListener('click', () => { stage = Number(button.dataset.stage); renderStage(); saveState(); if (!paused) byId('stage-panel').animate([{opacity:.65,transform:'translateY(5px)'},{opacity:1,transform:'none'}],{duration:250,easing:'ease-out'}); }));
+  function selectStage(index) {
+    if (stage === index) return;
+    stage = index;
+    renderStage();
+    saveState();
+    if (!paused) stagePanels[index].animate([{opacity:.7,transform:'translateY(4px)'},{opacity:1,transform:'none'}],{duration:200,easing:'ease-out'});
+  }
+  stages.forEach((tab, index) => {
+    tab.addEventListener('click', () => selectStage(index));
+    tab.addEventListener('keydown', event => {
+      const forward = copy.dir === 'rtl' ? 'ArrowLeft' : 'ArrowRight';
+      const back = copy.dir === 'rtl' ? 'ArrowRight' : 'ArrowLeft';
+      let next;
+      if (event.key === forward) next = (index + 1) % stages.length;
+      if (event.key === back) next = (index + stages.length - 1) % stages.length;
+      if (event.key === 'Home') next = 0;
+      if (event.key === 'End') next = stages.length - 1;
+      if (next !== undefined) {
+        event.preventDefault();
+        selectStage(next);
+        stages[next].focus();
+      }
+    });
+  });
+
+  const application = byId('application-model');
+  const applicationFields = [...application.querySelectorAll('[data-application-field]')];
+  const applicationSuggestions = [...application.querySelectorAll('[data-application-suggestion]')];
+  const applySuggestions = byId('apply-application-suggestions');
+  const applicationStatus = byId('application-model-status');
+  application.addEventListener('change', () => {
+    applySuggestions.disabled = !applicationSuggestions.some(input => input.checked);
+  });
+  applySuggestions.addEventListener('click', () => {
+    const model = copy.join.examples.application;
+    applicationSuggestions.forEach((suggestion, index) => {
+      if (suggestion.checked) applicationFields[index].value = model.fields[index][1];
+    });
+    application.querySelector('details').open = false;
+    applicationStatus.textContent = model.applied;
+    applicationFields[0].focus();
+  });
+
+  function bindSignatureDemo() {
+    const demo = byId('signature-demo');
+    const canvas = demo.querySelector('canvas');
+    const context = canvas.getContext('2d');
+    const status = demo.querySelector('.signature-status');
+    const text = copy.join.examples.signing;
+    const buttons = Object.fromEntries(
+      [...demo.querySelectorAll('[data-sign-action]')].map(button => [button.dataset.signAction, button]),
+    );
+    const tools = demo.querySelector('.signature-tools');
+    if (!context) {
+      buttons.sample.disabled = true;
+      return;
+    }
+
+    context.strokeStyle = '#111112';
+    context.lineWidth = 5;
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+
+    let pointer = null;
+    let lastPoint;
+    let hasInk = false;
+    let phase = 'draw';
+
+    function render() {
+      demo.dataset.ink = String(hasInk);
+      demo.dataset.phase = phase;
+      tools.hidden = phase !== 'draw';
+      buttons.clear.disabled = !hasInk;
+      buttons.sign.disabled = !hasInk;
+      buttons.sign.hidden = phase !== 'draw';
+      buttons.countersign.hidden = phase !== 'partner';
+      buttons.reset.hidden = phase === 'draw';
+      status.textContent = phase === 'partner' ? text.waiting : phase === 'complete' ? text.complete : '';
+    }
+    function clearInk() {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      hasInk = false;
+      render();
+    }
+    function point(event) {
+      const bounds = canvas.getBoundingClientRect();
+      return [
+        (event.clientX - bounds.left) * canvas.width / bounds.width,
+        (event.clientY - bounds.top) * canvas.height / bounds.height,
+      ];
+    }
+    function begin(event) {
+      if (phase !== 'draw' || pointer !== null || event.button !== 0) return;
+      pointer = event.pointerId;
+      canvas.setPointerCapture(pointer);
+      lastPoint = point(event);
+    }
+    function draw(event) {
+      if (pointer !== event.pointerId) return;
+      const events = event.getCoalescedEvents?.();
+      const stroke = (events?.length ? events : [event]).map(point);
+      context.beginPath();
+      context.moveTo(...lastPoint);
+      for (const position of stroke) context.lineTo(...position);
+      context.stroke();
+      lastPoint = stroke.at(-1);
+      if (!hasInk) {
+        hasInk = true;
+        render();
+      }
+    }
+    function end(event) {
+      if (pointer === event.pointerId) pointer = null;
+    }
+    canvas.addEventListener('pointerdown', begin);
+    canvas.addEventListener('pointermove', draw);
+    canvas.addEventListener('pointerup', end);
+    canvas.addEventListener('pointercancel', end);
+    canvas.addEventListener('lostpointercapture', end);
+
+    buttons.sample.addEventListener('click', () => {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.beginPath();
+      context.moveTo(155, 179);
+      context.bezierCurveTo(232, 194, 336, 45, 379, 74);
+      context.bezierCurveTo(414, 97, 307, 211, 372, 194);
+      context.bezierCurveTo(437, 177, 477, 109, 513, 128);
+      context.bezierCurveTo(544, 146, 502, 170, 555, 161);
+      context.bezierCurveTo(597, 153, 639, 126, 715, 137);
+      context.stroke();
+      hasInk = true;
+      render();
+    });
+    buttons.clear.addEventListener('click', () => {
+      clearInk();
+      buttons.sample.focus();
+    });
+    buttons.sign.addEventListener('click', () => {
+      if (phase !== 'draw' || !hasInk) return;
+      pointer = null;
+      phase = 'partner';
+      render();
+      buttons.countersign.focus();
+    });
+    buttons.countersign.addEventListener('click', () => {
+      if (phase !== 'partner') return;
+      phase = 'complete';
+      render();
+      buttons.reset.focus();
+    });
+    buttons.reset.addEventListener('click', () => {
+      phase = 'draw';
+      clearInk();
+      buttons.sample.focus();
+    });
+    render();
+  }
+  bindSignatureDemo();
+
   function renderMethod() {
     tabs.forEach(tab => {
       const selected = tab.dataset.method === method.id;
