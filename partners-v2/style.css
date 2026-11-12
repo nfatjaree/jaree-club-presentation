@@ -33,8 +33,8 @@
 .journey-stage strong{display:block;font-size:20px;font-weight:600;margin-bottom:9px}.journey-stage>span:last-child{display:block;font-size:13px;color:var(--muted)}
 .journey-stage .step-number{margin-bottom:17px;width:38px;height:38px;font-size:14px}
 .journey li:last-child .step-number{background:var(--paper);border-color:#bfc2b9;color:var(--ink)}
-.journey-stage[aria-pressed=true]{border-color:var(--red)}
-.journey .journey-stage[aria-pressed=true] .step-number{background:var(--ink);color:white;border-color:var(--ink)}
+.journey-stage[aria-selected=true]{border-color:var(--red)}
+.journey .journey-stage[aria-selected=true] .step-number{background:var(--ink);color:white;border-color:var(--ink)}
 .stage-panel{display:grid;grid-template-columns:1.3fr 1fr;gap:45px;border:1px solid var(--line);background:white;border-radius:14px;padding:34px;margin-top:28px;min-height:230px}
 .stage-panel h3{font-size:26px;margin:12px 0}.stage-panel p{font-size:16px;max-width:530px}.stage-panel ul{list-style:none;padding:0;margin:0;align-self:center}.stage-panel li{display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid #eceee8;font-size:15px}.stage-panel li:last-child{border:0}.stage-panel svg{width:17px;color:var(--teal)}
 .flow-link{margin-top:24px;font-size:14px;padding:11px 17px;gap:16px}
@@ -147,3 +147,69 @@ html[dir=ltr] .featured-copy svg,html[dir=ltr] .secondary-brands svg{transform:r
 .about-audiences{gap:48px;margin-top:30px;align-items:start}.about-audiences article{padding-top:21px}.about-audiences h3{font-size:23px;line-height:1.5;margin:0 0 10px}.about-audiences p{margin:0;max-width:49ch;line-height:1.85;text-wrap:pretty}.about .section-heading{margin-bottom:30px}
 .scenario-flow{grid-template-columns:repeat(3,1fr);margin:30px 0 24px}.scenario-summary{font-size:15px;line-height:1.8;color:var(--muted);max-width:850px;margin-bottom:24px}.api-disclosure{border-top:1px solid var(--line);margin-top:24px}.api-disclosure>summary{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:21px 0;cursor:pointer;font-size:14px;font-weight:500;list-style:none}.api-disclosure>summary::-webkit-details-marker{display:none}.api-disclosure>summary>span{font-size:20px;line-height:1;transition:transform .2s}.api-disclosure[open]>summary>span{transform:rotate(45deg)}.api-disclosure>summary:focus-visible{outline:2px solid var(--teal);outline-offset:4px}.api-disclosure-body>.api-base{margin-top:0}.api-disclosure-body>.technical-example-note{margin-bottom:20px}.api-disclosure .api-exchange{margin-top:16px}.scenario-note{margin-top:0}
 @media(max-width:760px){.about-audiences{gap:24px}.about-audiences h3{font-size:21px}.about-audiences p{font-size:16px}.scenario-flow{grid-template-columns:1fr}.scenario-summary{font-size:14px}.api-disclosure>summary{font-size:13px}}
+
+.journey-panels .stage-panel{grid-template-columns:minmax(0,1fr) minmax(0,1.04fr);grid-template-areas:"copy example" "checks example";grid-template-rows:auto 1fr;align-items:start;column-gap:clamp(24px,4vw,54px);row-gap:10px;padding:clamp(22px,3vw,38px);margin-top:22px}
+.journey-panels .stage-panel[hidden],.signature-demo [hidden]{display:none}
+.stage-copy{grid-area:copy}
+.stage-copy p{margin:0}
+.stage-panel .stage-checks{grid-area:checks;align-self:start;max-width:440px}
+.stage-checks li{font-size:14px}
+.stage-example{grid-area:example;min-width:0}
+.stage-example>.small-label{display:block;margin-bottom:8px}
+.journey-model{overflow:hidden;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+.journey-model-head{display:flex;align-items:center;justify-content:space-between;gap:9px;padding:12px 16px;border-bottom:1px solid var(--line);background:white}
+.journey-model-head h4{font-size:16px;line-height:1.35;margin:0}
+.journey-model-head .outline-tag{font-size:11px;line-height:1.35;color:var(--teal);text-align:center}
+.journey-model-body{padding:13px 16px;font-size:14px;line-height:1.55}
+.model-fields{display:grid;grid-template-columns:1fr 1fr;gap:9px 12px;margin-top:10px}
+.model-fields label{font-size:12px;font-weight:600;min-width:0}
+.model-fields label:last-child{grid-column:1/-1}
+.model-fields input{display:block;width:100%;min-height:38px;margin-top:3px;padding:6px 9px;border:1px solid var(--line);border-radius:6px;background:white;color:var(--ink);font:inherit;font-size:13px;font-weight:400}
+.model-disclosure{border:1px solid var(--line);border-radius:7px;background:white}
+.model-disclosure summary{padding:9px 10px;color:var(--teal);font-size:13px;font-weight:600;cursor:pointer}
+.model-assist summary svg{width:14px;height:14px;margin-inline:4px;vertical-align:middle}
+.model-disclosure>p,.model-disclosure>div{margin:0;padding:9px 10px;border-block-start:1px solid var(--line);font-size:13px}
+.model-suggestions>p{margin:3px 0 6px;color:var(--muted);font-size:12px}
+.model-suggestions label{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.model-suggestions input{margin:0;accent-color:var(--ink)}
+.model-suggestions label small,.model-suggestions label b{display:block}
+.model-suggestions .button{margin-top:9px;min-height:34px;padding:4px 10px;font-size:12px}
+.model-suggestions .button:disabled{opacity:.45}
+.stage-panel .model-status,.stage-panel .model-note,.stage-panel .model-caption{font-size:12px;margin:8px 0 0;color:var(--muted)}
+.stage-panel .model-status{color:var(--teal)}
+.model-status:empty{display:none}
+.stage-panel .model-caption{margin:0 0 7px}
+.model-agreed{display:grid;gap:2px;padding:9px 10px;margin-bottom:8px;border-inline-start:2px solid var(--teal);background:#e6efed}
+.model-agreed small,.model-benefit-fields dt,.model-member small{font-size:11px;color:var(--muted)}
+.model-benefit-fields{margin:0 0 8px}
+.model-benefit-fields div{display:grid;grid-template-columns:.75fr 1.25fr;gap:8px;align-items:baseline;padding:5px 0;border-block-end:1px solid var(--line)}
+.model-benefit-fields div:first-child{padding-top:0}
+.model-benefit-fields dd{font-size:13px;font-weight:600;margin:0}
+.model-member{display:flex;align-items:start;gap:9px}
+.model-member-icon{display:grid;place-items:center;flex:0 0 32px;aspect-ratio:1;border-radius:6px;background:#e6efed}
+.model-member-icon svg{width:17px;height:17px}
+.model-member small,.model-member b{display:block}
+.stage-panel .model-member p{font-size:12px;margin:3px 0 0;color:var(--muted)}
+.signature-demo{padding:13px 15px;background:var(--paper);border:1px solid var(--line);border-radius:9px}
+.signature-demo h4{font-size:15px;margin:0 0 4px}
+.stage-panel .signature-help{font-size:13px;color:var(--muted);margin:0 0 10px}
+.signature-paper{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:7px;background:white}
+.signature-paper:after{content:"";position:absolute;inset-inline:12%;bottom:20%;border-bottom:1px dashed #ced2cb;pointer-events:none}
+.signature-paper canvas{position:relative;z-index:1;display:block;width:100%;height:auto;min-height:104px;touch-action:none;cursor:crosshair}
+.signature-paper span{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:14px;pointer-events:none}
+.signature-demo[data-ink=true] .signature-paper span{visibility:hidden}
+.signature-demo:not([data-phase=draw]) canvas{cursor:default;touch-action:auto}
+.signature-tools,.signature-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px 15px}
+.signature-tools{justify-content:space-between;margin-top:3px}
+.signature-tools button{font-size:13px;text-underline-offset:3px;text-decoration:underline;color:var(--teal);background:none;border:0;padding:5px 0;min-height:36px}
+.signature-tools button:disabled{opacity:.45}
+.signature-actions{margin-top:6px}
+.signature-actions .button{min-height:39px;padding:7px 13px;font-size:13px;border-radius:6px}
+.signature-actions .button:disabled{opacity:.45}
+.stage-panel .signature-status{font-size:13px;color:var(--teal);margin:9px 0 0}
+.signature-status:empty{display:none}
+@media(max-width:760px){
+  .journey-panels .stage-panel{grid-template-columns:1fr;grid-template-areas:"copy" "example" "checks";grid-template-rows:auto;gap:16px}
+  .journey-model-head,.journey-model-body{padding-inline:11px}
+}
+@media print{.journey-panels .stage-panel:not([hidden]){grid-template-columns:1fr 1fr;grid-template-areas:"copy example" "checks example"}.signature-tools,.signature-actions{display:none!important}}
